@@ -1,0 +1,22 @@
+{
+  "name": "aws_api",
+  "version": "1.0.0",
+  "description": "aws_test server",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^2.28.0",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "forever": "^4.0.1",
+    "nodemon": "^2.0.12",
+    "passport": "^0.4.1",
+    "passport-http": "^0.3.0",
+    "prisma": "^2.28.0"
+  }
+}
