@@ -14,9 +14,10 @@ model Stock {
   id Int @id @default(autoincrement())
   name String @unique
   amount Int
+  price Int @default(0)
 }
 
 model Sale {
   id Int @id @default(autoincrement())
-  total Int
+  total Int @default(0)
 }
