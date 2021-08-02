@@ -181,6 +181,19 @@ app.post('/v1/sales',
       var sum;
       if (req.rawBody.indexOf('price') == -1) sum = 0;
       else sum = req.body.amount * req.body.price;
+      const sales = await prisma.sale.findUnique({
+        where: {
+          id: 1
+        }
+      });
+      console.log(sales);
+      if (sales == null) {
+        const create_sale = await prisma.sale.create({
+          data: {
+            total: 0
+          }
+        });
+      }
       const update_sale = await prisma.sale.updateMany({
         where: {
           id: 1
@@ -204,6 +217,7 @@ app.get('/v1/sales', async (req, res) => {
       id: 1
     }
   });
+  console.log(sales);
   if (sales == null) {
     const create_sale = await prisma.sale.create({
       data: {
@@ -222,7 +236,14 @@ app.get('/v1/sales', async (req, res) => {
 // 空を返す
 app.delete('/v1/stocks', async (req, res) => {
   const delete_stocks = await prisma.stock.deleteMany({});
-  const delete_sales = await prisma.sale.deleteMany({});
+  const delete_sales = await prisma.sale.updateMany({
+    where: {
+      id: 1
+    },
+    data: {
+      total: 0
+    }
+  });
   res.status(200).json({});
 });
 
