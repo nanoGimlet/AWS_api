@@ -222,6 +222,7 @@ app.get('/v1/sales', async (req, res) => {
 // 空を返す
 app.delete('/v1/stocks', async (req, res) => {
   const delete_stocks = await prisma.stock.deleteMany({});
+  const delete_sales = await prisma.sale.deleteMany({});
   res.status(200).json({});
 });
 
