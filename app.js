@@ -136,13 +136,7 @@ app.get('/v1/stocks', async (req, res) => {
 // /v1/salesにアクセス、salesに計算値を加算, amountを減算
 app.post('/v1/sales',
   [
-    check('name').not(),
-    check('amount').isInt().custom(value => {
-      if (value < 0) {
-        throw new Error('amount is greater than 0.');
-      }
-      return true;
-    })
+    check('name').not()
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -163,24 +157,27 @@ app.post('/v1/sales',
       console.log('error');
       res.status(422).json({ message: 'ERROR' });
     }else {
+      var check_amount;
+      if (req.rawBody.indexOf('amount') == -1) check_amount = 1;
+      else check_amount = req.body.amount;
       const update_stock = await prisma.stock.updateMany({
         where: {
           name: {
             equals: req.body.name
           },
           amount: {
-            gte: req.body.amount
+            gte: check_amount
           }
         },
         data: {
           amount: {
-            decrement: req.body.amount
+            decrement: check_amount
           }
         }
       });
       var sum;
       if (req.rawBody.indexOf('price') == -1) sum = 0;
-      else sum = req.body.amount * req.body.price;
+      else sum = check_amount * req.body.price;
       const sales = await prisma.sale.findUnique({
         where: {
           id: 1
