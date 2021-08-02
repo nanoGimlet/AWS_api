@@ -66,36 +66,42 @@ app.post('/v1/stocks',
       return res.status(422).json({ errors: errors.array() });
     }
     console.log(req.body);
-    const stock = await prisma.stock.findMany({
-      where: {
-        name: {
-          equals: req.body.name
-        },
-      },
-    });
-    console.log(stock);
-    if (stock == '') {
-      const create_stock = await prisma.stock.create({
-        data: {
-          name: req.body.name,
-          amount: req.body.amount
-        }
-      });
-      console.log(create_stock);
-      res.status(200).json(create_stock);
-    } else {
-      const update_stock = await prisma.stock.updateMany({
+    const stock = await prisma.$transaction([
+      prisma.stock.findMany({
         where: {
           name: {
             equals: req.body.name
-          },
-        },
-        data: {
-          amount: {
-            increment: req.body.amount
           }
         }
-      });
+      })
+    ]);
+    console.log(stock);
+    if (stock == '') {
+      const create_stock = await prisma.$transaction([
+        prisma.stock.create({
+          data: {
+            name: req.body.name,
+            amount: req.body.amount
+          }
+        })
+      ]);
+      console.log(create_stock);
+      res.status(200).json(create_stock);
+    } else {
+      const update_stock = await prisma.$transaction([
+        prisma.stock.updateMany({
+          where: {
+            name: {
+              equals: req.body.name
+            }
+          },
+          data: {
+            amount: {
+              increment: req.body.amount
+            }
+          }
+        })
+      ]);
       console.log(update_stock);
       res.status(200).json(update_stock);
     }
@@ -113,7 +119,7 @@ app.get('/v1/stocks/:name', (req, res) => {
   }).then((result) => {
     if (result == '') {
       console.log('error');
-      res.status(204).json({ message: 'ERROR' });
+      res.status(400).json({ message: 'ERROR' });
     }else {
       console.log(result);
       res.status(200).json(result);
@@ -143,24 +149,11 @@ app.post('/v1/sales',
     if (!errors.isEmpty()) {
       return res.status(422).json({ errors: errors.array() });
     }
-    const change_stock = await prisma.stock.findMany({
-      where: {
-        name: {
-          equals: req.body.name
-        },
-        amount: {
-          gte: req.body.amount
-        }
-      }
-    });
-    if (change_stock == '') {
-      console.log('error');
-      res.status(422).json({ message: 'ERROR' });
-    }else {
-      var check_amount;
-      if (req.rawBody.indexOf('amount') == -1) check_amount = 1;
-      else check_amount = req.body.amount;
-      const update_stock = await prisma.stock.updateMany({
+    var check_amount;
+    if (req.rawBody.indexOf('amount') == -1) check_amount = 1;
+    else check_amount = req.body.amount;
+    const change_stock = await prisma.$transaction([
+      prisma.stock.findMany({
         where: {
           name: {
             equals: req.body.name
@@ -168,39 +161,62 @@ app.post('/v1/sales',
           amount: {
             gte: check_amount
           }
-        },
-        data: {
-          amount: {
-            decrement: check_amount
-          }
         }
-      });
+      })
+    ]);
+    if (change_stock == '') {
+      console.log('error');
+      res.status(422).json({ message: 'ERROR' });
+    }else {
+      const update_stock = await prisma.$transaction([
+        prisma.stock.updateMany({
+          where: {
+            name: {
+              equals: req.body.name
+            },
+            amount: {
+              gte: check_amount
+            }
+          },
+          data: {
+            amount: {
+              decrement: check_amount
+            }
+          }
+        })
+      ]);
       var sum;
       if (req.rawBody.indexOf('price') == -1) sum = 0;
       else sum = check_amount * req.body.price;
-      const sales = await prisma.sale.findUnique({
-        where: {
-          id: 1
-        }
-      });
+      const sales = await prisma.$transaction([
+        prisma.sale.findUnique({
+          where: {
+            id: 1
+          }
+        })
+      ]);
       console.log(sales);
       if (sales == null) {
-        const create_sale = await prisma.sale.create({
-          data: {
-            total: 0
-          }
-        });
+        const create_sale = await prisma.$transaction([
+          prisma.sale.create({
+            data: {
+              total: 0
+            }
+          })
+        ]);
       }
-      const update_sale = await prisma.sale.updateMany({
-        where: {
-          id: 1
-        },
-        data: {
-          total: {
-            increment: sum
+      const update_sale = await prisma.$transaction([
+        prisma.sale.updateMany({
+          where: {
+            id: 1
+          },
+          data: {
+            total: {
+              increment: sum
+            }
           }
-        }
-      });
+        })
+      ]);
       console.log(sum);
       res.status(200).json(req.body);
     }
@@ -209,18 +225,22 @@ app.post('/v1/sales',
 // 売り上げチェック
 // salesの値を返す
 app.get('/v1/sales', async (req, res) => {
-  const sales = await prisma.sale.findUnique({
-    where: {
-      id: 1
-    }
-  });
+  const sales = await prisma.$transaction([
+    prisma.sale.findUnique({
+      where: {
+        id: 1
+      }
+    })
+  ]);
   console.log(sales);
   if (sales == null) {
-    const create_sale = await prisma.sale.create({
-      data: {
-        total: 0
-      }
-    });
+    const create_sale = await prisma.$transaction([
+      prisma.sale.create({
+        data: {
+          total: 0
+        }
+      })
+    ]);
     console.log(create_sale);
     res.status(200).json(create_sale);
   }else {
@@ -232,15 +252,19 @@ app.get('/v1/sales', async (req, res) => {
 // 全削除
 // 空を返す
 app.delete('/v1/stocks', async (req, res) => {
-  const delete_stocks = await prisma.stock.deleteMany({});
-  const delete_sales = await prisma.sale.updateMany({
-    where: {
-      id: 1
-    },
-    data: {
-      total: 0
-    }
-  });
+  const delete_stocks = await prisma.$transaction([
+    prisma.stock.deleteMany({})
+  ]);
+  const delete_sales = await prisma.$transaction([
+    prisma.sale.updateMany({
+      where: {
+        id: 1
+      },
+      data: {
+        total: 0
+      }
+    })
+  ]);
   res.status(200).json({});
 });
 
